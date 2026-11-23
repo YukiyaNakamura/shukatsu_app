@@ -6,11 +6,11 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
-import { authErrorMessage } from "@/lib/auth/auth-errors";
+import { authClient } from "@/lib/auth/client";
+import { authErrorMessage, verifiedCallbackPath } from "@/lib/auth/auth-errors";
 import { FormField } from "./form-field";
 
-export function LoginForm({ next, initialError }: { next: string | null; initialError?: string }) {
+export function LoginForm({ next, initialError, notice }: { next: string | null; initialError?: string; notice?: string }) {
   const router = useRouter();
   const [error, setError] = useState(initialError ?? "");
   const [pending, setPending] = useState(false);
@@ -20,9 +20,11 @@ export function LoginForm({ next, initialError }: { next: string | null; initial
     const form = new FormData(e.currentTarget);
     setPending(true);
     setError("");
-    const { error } = await createClient().auth.signInWithPassword({
+    const { error } = await authClient.signIn.email({
       email: String(form.get("email") ?? "").trim(),
       password: String(form.get("password") ?? ""),
+      // メールアドレスが未確認の場合に再送する確認メールの戻り先
+      callbackURL: verifiedCallbackPath(next),
     });
     if (error) {
       setError(authErrorMessage(error));
@@ -35,11 +37,15 @@ export function LoginForm({ next, initialError }: { next: string | null; initial
 
   return (
     <form onSubmit={onSubmit} className="grid gap-4" noValidate>
-      {error && (
+      {error ? (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-      )}
+      ) : notice ? (
+        <Alert>
+          <AlertDescription>{notice}</AlertDescription>
+        </Alert>
+      ) : null}
       <FormField label="メールアドレス" name="email" type="email" autoComplete="email" required autoFocus />
       <FormField label="パスワード" name="password" type="password" autoComplete="current-password" required />
       <Button type="submit" disabled={pending} className="w-full">

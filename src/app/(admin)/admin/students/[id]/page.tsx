@@ -4,8 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/layouts/page-header";
 import { ApplicationSheet } from "@/components/applications/application-sheet";
-import { requireOrgAdmin } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { requireOrgAdmin, getDataContext } from "@/lib/auth/session";
 import { listApplications } from "@/lib/data/applications";
 import { listOrgStudents } from "@/lib/data/organization";
 import { uuidSchema } from "@/lib/validations/common";
@@ -17,11 +16,11 @@ export default async function AdminStudentDetailPage({ params }: { params: Promi
   await requireOrgAdmin();
   const { id } = await params;
   if (!uuidSchema.safeParse(id).success) notFound();
-  const supabase = await createClient();
-  // 自組織に現在所属している学生のみ (RLS でも保証)
-  const student = (await listOrgStudents(supabase)).find((s) => s.student_id === id);
+  const ctx = await getDataContext();
+  // 自組織に現在所属している学生のみ (データアクセス層のアクセス制御でも保証)
+  const student = (await listOrgStudents(ctx)).find((s) => s.student_id === id);
   if (!student) notFound();
-  const rows = await listApplications(supabase, { studentId: id, includeDeleted: true });
+  const rows = await listApplications(ctx, { studentId: id, includeDeleted: true });
   return (
     <>
       <PageHeader

@@ -1,6 +1,6 @@
 /**
- * Supabase の Database 型 (supabase/migrations と対応)。
- * Supabase プロジェクト接続後は `npm run db:types` で自動生成したものに置き換え可能。
+ * アプリで扱う行の型 (D1 のスキーマ src/db/schema.ts と対応。日時は ISO 8601 の文字列)。
+ * UI コンポーネントと API の入出力はこの型を使う。
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -27,13 +27,6 @@ export type StepResult = "PENDING" | "PASSED" | "FAILED";
 type JoinRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 type InvitationRole = "STUDENT" | "ADMIN";
 type DeletionRequestStatus = "REQUESTED" | "PROCESSING" | "COMPLETED" | "CANCELLED";
-
-type Table<Row, Required extends keyof Row, Optional extends keyof Row = Exclude<keyof Row, Required>> = {
-  Row: Row;
-  Insert: { [K in Required]: Row[K] } & { [K in Optional]?: Row[K] };
-  Update: { [K in keyof Row]?: Row[K] };
-  Relationships: [];
-};
 
 export type ProfileRow = {
   id: string;
@@ -228,92 +221,4 @@ export type StudentOverviewRow = {
   in_progress_count: number;
   accepted_count: number;
   last_updated_at: string | null;
-};
-
-type View<Row> = { Row: Row; Relationships: [] };
-
-export type Database = {
-  public: {
-    Tables: {
-      profiles: Table<ProfileRow, "id" | "role" | "full_name">;
-      organizations: Table<OrganizationRow, "name">;
-      organization_members: Table<OrganizationMemberRow, "organization_id" | "user_id" | "role">;
-      student_memberships: Table<StudentMembershipRow, "student_id" | "organization_id" | "consent_version" | "consented_at">;
-      applications: Table<ApplicationRow, "student_id" | "company_name" | "selection_type">;
-      selection_steps: Table<SelectionStepRow, "application_id" | "step_type" | "display_name" | "position">;
-      events: Table<EventRow, "student_id" | "title" | "starts_at">;
-      invitations: Table<InvitationRow, "organization_id" | "token_hash">;
-      join_requests: Table<JoinRequestRow, "student_id" | "organization_id" | "consent_version">;
-      audit_logs: Table<AuditLogRow, "target_type" | "target_id" | "action", Exclude<keyof AuditLogRow, "target_type" | "target_id" | "action">>;
-      account_deletion_requests: Table<AccountDeletionRequestRow, never>;
-    };
-    Views: {
-      application_overview: View<ApplicationOverviewRow>;
-      calendar_items: View<CalendarItemRow>;
-    };
-    Functions: {
-      create_organization: { Args: { p_name: string }; Returns: string };
-      regenerate_join_code: { Args: Record<string, never>; Returns: string };
-      disable_join_code: { Args: Record<string, never>; Returns: undefined };
-      create_invitation: {
-        Args: { p_email?: string | null; p_role?: InvitationRole };
-        Returns: { invitation_id: string; token: string; expires_at: string }[];
-      };
-      revoke_invitation: { Args: { p_invitation_id: string }; Returns: undefined };
-      get_invitation: {
-        Args: { p_token: string };
-        Returns: {
-          organization_name: string | null;
-          invitee_role: InvitationRole | null;
-          email_restricted: boolean | null;
-          expires_at: string | null;
-          state: "VALID" | "EXPIRED" | "USED" | "REVOKED" | "NOT_FOUND";
-        }[];
-      };
-      accept_invitation: { Args: { p_token: string; p_consent_version?: string | null }; Returns: string };
-      request_join: {
-        Args: { p_code: string; p_consent_version: string };
-        Returns: { request_id: string; organization_name: string }[];
-      };
-      cancel_join_request: { Args: { p_request_id: string }; Returns: undefined };
-      review_join_request: { Args: { p_request_id: string; p_approve: boolean }; Returns: undefined };
-      end_membership: { Args: { p_membership_id: string }; Returns: undefined };
-      create_application: {
-        Args: {
-          p_student_id: string;
-          p_company_name: string;
-          p_selection_type: SelectionType;
-          p_is_early_selection?: boolean;
-          p_job_title?: string | null;
-          p_status?: ApplicationStatus;
-          p_use_template?: boolean;
-        };
-        Returns: ApplicationRow;
-      };
-      set_current_stage: {
-        Args: { p_application_id: string; p_step_type: StepType; p_expected_version: number };
-        Returns: ApplicationRow;
-      };
-      reorder_steps: { Args: { p_application_id: string; p_step_ids: string[] }; Returns: undefined };
-      org_student_overview: { Args: Record<string, never>; Returns: StudentOverviewRow[] };
-      request_account_deletion: { Args: Record<string, never>; Returns: string };
-      cancel_account_deletion: { Args: Record<string, never>; Returns: undefined };
-      process_account_deletion: { Args: { p_request_id: string }; Returns: undefined };
-      purge_old_audit_logs: { Args: Record<string, never>; Returns: number };
-    };
-    Enums: {
-      user_role: UserRole;
-      org_member_role: OrgMemberRole;
-      membership_status: MembershipStatus;
-      selection_type: SelectionType;
-      application_status: ApplicationStatus;
-      step_type: StepType;
-      step_status: StepStatus;
-      step_result: StepResult;
-      join_request_status: JoinRequestStatus;
-      invitation_role: InvitationRole;
-      deletion_request_status: DeletionRequestStatus;
-    };
-    CompositeTypes: Record<string, never>;
-  };
 };

@@ -2,8 +2,6 @@ import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const isDev = process.env.NODE_ENV !== "production";
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : "";
 
 // Next.js のハイドレーション用インラインスクリプトがあるため script-src に 'unsafe-inline' が必要
 // (nonce 方式は全ページの動的化と proxy 改修が必要なため MVP では採用しない)
@@ -13,7 +11,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace(/^https/, "wss")}${isDev ? " ws:" : ""}`.trim(),
+  // API・認証はすべて同一オリジン (/api/v1, /api/auth)。開発時は HMR の WebSocket を許可
+  `connect-src 'self'${isDev ? " ws:" : ""}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -46,5 +45,5 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-// `next dev` で Cloudflare のバインディングを利用可能にする
+// `next dev` で Cloudflare のバインディング (D1 など。wrangler.jsonc) をローカルで利用可能にする
 initOpenNextCloudflareForDev();

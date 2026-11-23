@@ -12,9 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Cloudflare / OpenNext のビルド成果物
+    // Next.js / Cloudflare / OpenNext のビルド成果物 (iCloud 対策の *.nosync を含む)
+    ".next.nosync/**",
     ".open-next/**",
+    ".open-next.nosync/**",
     ".wrangler/**",
+    ".wrangler.nosync/**",
     "cloudflare-env.d.ts",
   ]),
 ]);

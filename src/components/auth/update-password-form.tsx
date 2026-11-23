@@ -6,12 +6,17 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth/client";
 import { authErrorMessage } from "@/lib/auth/auth-errors";
 import { passwordSchema } from "@/lib/validations/profile";
 import { FormField } from "./form-field";
 
-export function UpdatePasswordForm({ redirectTo }: { redirectTo?: string }) {
+/**
+ * パスワードの変更。
+ *   token あり … 再設定メールのリンクから (ログイン不要)。完了後はログイン画面へ
+ *   token なし … ログイン中の変更 (現在のパスワードが必要)。他の端末のセッションは無効化する
+ */
+export function UpdatePasswordForm({ token }: { token?: string }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -25,13 +30,19 @@ export function UpdatePasswordForm({ redirectTo }: { redirectTo?: string }) {
     if (form.get("password") !== form.get("passwordConfirm")) return setError("パスワードが一致しません");
     setPending(true);
     setError("");
-    const { error } = await createClient().auth.updateUser({ password: parsed.data });
+    const { error } = token
+      ? await authClient.resetPassword({ newPassword: parsed.data, token })
+      : await authClient.changePassword({
+          currentPassword: String(form.get("currentPassword") ?? ""),
+          newPassword: parsed.data,
+          revokeOtherSessions: true,
+        });
     setPending(false);
     if (error) return setError(authErrorMessage(error));
     toast.success("パスワードを変更しました");
     formEl.reset();
-    if (redirectTo) {
-      router.replace(redirectTo);
+    if (token) {
+      router.replace("/login?reset=1");
       router.refresh();
     }
   }
@@ -42,6 +53,9 @@ export function UpdatePasswordForm({ redirectTo }: { redirectTo?: string }) {
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+      {!token && (
+        <FormField label="現在のパスワード" name="currentPassword" type="password" autoComplete="current-password" required />
       )}
       <FormField label="新しいパスワード" name="password" type="password" autoComplete="new-password" hint="8文字以上" required />
       <FormField label="新しいパスワード (確認)" name="passwordConfirm" type="password" autoComplete="new-password" required />

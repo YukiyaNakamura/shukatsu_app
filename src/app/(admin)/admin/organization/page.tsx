@@ -8,8 +8,7 @@ import {
   JoinRequestsCard,
   StudentMembersCard,
 } from "@/components/organization/admin-organization";
-import { getAdminContext } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { getAdminContext, getDataContext } from "@/lib/auth/session";
 import {
   getOrganization,
   listInvitations,
@@ -31,13 +30,13 @@ export default async function AdminOrganizationPage() {
     );
   }
   const orgId = ctx.membership.organization_id;
-  const supabase = await createClient();
+  const data = await getDataContext();
   const [org, admins, invitations, requests, students] = await Promise.all([
-    getOrganization(supabase, orgId),
-    listOrgMembers(supabase, orgId),
-    listInvitations(supabase, orgId),
-    listPendingJoinRequests(supabase, orgId),
-    listOrgStudents(supabase),
+    getOrganization(data, orgId),
+    listOrgMembers(data, orgId),
+    listInvitations(data, orgId),
+    listPendingJoinRequests(data, orgId),
+    listOrgStudents(data),
   ]);
   const isOwner = ctx.membership.role === "OWNER";
   return (

@@ -3,17 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/layouts/page-header";
 import { UpdatePasswordForm } from "@/components/auth/update-password-form";
 import type { SessionUser } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { getDataContext } from "@/lib/auth/session";
+import { getOpenDeletionRequest } from "@/lib/data/account";
 import { ProfileForm } from "./profile-form";
 import { AccountDeletion } from "./account-deletion";
 
 export async function SettingsPage({ user }: { user: SessionUser }) {
-  const supabase = await createClient();
-  const { data: deletion } = await supabase
-    .from("account_deletion_requests")
-    .select("status, requested_at")
-    .in("status", ["REQUESTED", "PROCESSING"])
-    .maybeSingle();
+  const deletion = await getOpenDeletionRequest(await getDataContext());
   return (
     <>
       <PageHeader title="設定" />

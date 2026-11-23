@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layouts/page-header";
 import { CompaniesView } from "@/components/organization/companies-view";
-import { requireOrgAdmin } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { requireOrgAdmin, getDataContext } from "@/lib/auth/session";
 import { listApplications } from "@/lib/data/applications";
 import type { ApplicationOverviewRow } from "@/types/database";
 
@@ -10,7 +9,7 @@ export const metadata: Metadata = { title: "企業別一覧" };
 
 export default async function AdminCompaniesPage() {
   await requireOrgAdmin();
-  const rows = await listApplications(await createClient());
+  const rows = await listApplications(await getDataContext());
   const map = new Map<string, ApplicationOverviewRow[]>();
   for (const r of rows) {
     const key = r.company_name_normalized || r.company_name;

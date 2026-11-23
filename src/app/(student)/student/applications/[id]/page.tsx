@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ApplicationDetail } from "@/components/applications/application-detail";
-import { requireStudent } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { requireStudent, getDataContext } from "@/lib/auth/session";
 import { getApplicationDetail } from "@/lib/data/applications";
 import { ApiError } from "@/lib/api/errors";
 import { uuidSchema } from "@/lib/validations/common";
@@ -13,8 +12,8 @@ export default async function StudentApplicationDetailPage({ params }: { params:
   await requireStudent();
   const { id } = await params;
   if (!uuidSchema.safeParse(id).success) notFound();
-  const supabase = await createClient();
-  const detail = await getApplicationDetail(supabase, id).catch((e) => {
+  const ctx = await getDataContext();
+  const detail = await getApplicationDetail(ctx, id).catch((e) => {
     if (e instanceof ApiError && e.status === 404) notFound();
     throw e;
   });

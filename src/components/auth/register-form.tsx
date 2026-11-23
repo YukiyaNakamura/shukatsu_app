@@ -7,8 +7,8 @@ import { GraduationCap, Loader2, MailCheck, Users } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
-import { authErrorMessage } from "@/lib/auth/auth-errors";
+import { authClient } from "@/lib/auth/client";
+import { authErrorMessage, verifiedCallbackPath } from "@/lib/auth/auth-errors";
 import { signUpSchema } from "@/lib/validations/profile";
 import { FormField } from "./form-field";
 
@@ -47,28 +47,22 @@ export function RegisterForm({ next, defaultRole = "STUDENT" }: { next: string |
     setPending(true);
 
     const input = parsed.data;
-    const redirectTo = new URL("/auth/confirm", window.location.origin);
-    // メールテンプレートで `{{ .RedirectTo }}&token_hash=...` と連結できるよう常にクエリを付ける
-    redirectTo.searchParams.set("next", next ?? "/");
-    const { data, error } = await createClient().auth.signUp({
+    const { data, error } = await authClient.signUp.email({
       email: input.email,
       password: input.password,
-      options: {
-        emailRedirectTo: redirectTo.toString(),
-        data: {
-          role: input.role,
-          full_name: input.fullName,
-          university_name: input.role === "STUDENT" ? input.universityName : null,
-        },
-      },
+      name: input.fullName,
+      role: input.role,
+      universityName: input.role === "STUDENT" ? input.universityName : undefined,
+      // 確認メールのリンクを開いた後に戻るページ (確認しただけではログインしない)
+      callbackURL: verifiedCallbackPath(next),
     });
     setPending(false);
     if (error) {
       setFormError(authErrorMessage(error));
       return;
     }
-    if (data.session) {
-      // メール確認が無効な環境ではそのままログイン状態になる
+    if (data && "token" in data && data.token) {
+      // メール確認が不要な設定の場合はそのままログイン状態になる
       router.replace(next ?? "/");
       router.refresh();
       return;

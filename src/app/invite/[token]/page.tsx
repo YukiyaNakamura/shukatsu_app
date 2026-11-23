@@ -4,7 +4,8 @@ import { Building2, CircleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AcceptInvitation } from "@/components/organization/accept-invitation";
-import { createClient } from "@/lib/supabase/server";
+import { getInvitation } from "@/lib/data/organization";
+import { getDb } from "@/lib/server/env";
 import { getSessionUser, homePathFor } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/utils/datetime";
 
@@ -20,8 +21,7 @@ const STATE_MESSAGES = {
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const valid = /^[0-9a-f]{64}$/.test(token);
-  const supabase = await createClient();
-  const info = valid ? (await supabase.rpc("get_invitation", { p_token: token })).data?.[0] : undefined;
+  const info = valid ? await getInvitation(await getDb(), token) : undefined;
   const state = info?.state ?? "NOT_FOUND";
   const user = await getSessionUser();
   const next = `/invite/${token}`;
