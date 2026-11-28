@@ -81,7 +81,7 @@ export function RegisterForm({ next, defaultRole = "STUDENT" }: { next: string |
         </div>
         <p className="text-muted-foreground">メールが届かない場合は、迷惑メールフォルダを確認するか、時間をおいて再度登録してください。</p>
         <Button variant="outline" asChild>
-          <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>ログイン画面へ</Link>
+          <Link href={`/login?role=${role}${next ? `&next=${encodeURIComponent(next)}` : ""}`}>ログイン画面へ</Link>
         </Button>
       </div>
     );
@@ -93,7 +93,7 @@ export function RegisterForm({ next, defaultRole = "STUDENT" }: { next: string |
         {(
           [
             { value: "STUDENT", label: "学生", desc: "自分の選考を管理", icon: GraduationCap },
-            { value: "ADMIN", label: "エージェント", desc: "学生の選考を支援", icon: Users },
+            { value: "ADMIN", label: "管理者", desc: "学生の選考を支援 (エージェント等)", icon: Users },
           ] as const
         ).map((opt) => (
           <button
@@ -142,7 +142,7 @@ export function RegisterForm({ next, defaultRole = "STUDENT" }: { next: string |
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         すでにアカウントをお持ちの方は{" "}
-        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-foreground underline-offset-4 hover:underline">
+        <Link href={`/login?role=${role}${next ? `&next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-foreground underline-offset-4 hover:underline">
           ログイン
         </Link>
       </p>
