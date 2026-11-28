@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RegisterForm } from "@/components/auth/register-form";
 import { getSessionUser, homePathFor } from "@/lib/auth/session";
@@ -13,7 +15,12 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
   const user = await getSessionUser();
   if (user) redirect(next ?? homePathFor(user.profile.role));
   return (
-    <Card>
+    <div className="grid gap-3">
+      <Link href="/" className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+        <ArrowLeft className="size-4" />
+        学生 / 管理者を選ぶ
+      </Link>
+      <Card>
       <CardHeader>
         <CardTitle className="text-xl">新規登録</CardTitle>
         <CardDescription>アカウントの種類を選んで登録してください。種類は後から変更できません。</CardDescription>
@@ -21,6 +28,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
       <CardContent>
         <RegisterForm next={next} defaultRole={sp.role === "ADMIN" ? "ADMIN" : "STUDENT"} />
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 }

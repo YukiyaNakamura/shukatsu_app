@@ -1,2 +1,14 @@
+# ローカル開発用の Worker 変数・シークレット。`cp .dev.vars.example .dev.vars` して値を設定する
 # `npm run preview` (workerd) 用。Next.js 側の .env* ファイルのどれを読むかを指定する
 NEXTJS_ENV=development
+
+# Better Auth: セッション署名用の秘密鍵。`openssl rand -base64 32` で生成する
+BETTER_AUTH_SECRET=
+# アプリの公開 URL (認証メール内のリンクと CSRF 対策の許可オリジンに使う)
+BETTER_AUTH_URL=http://localhost:3000
+
+# メール送信 (Resend)。未設定の場合、メールは送信せずサーバーのログにリンクを出力する (開発用)
+# RESEND_API_KEY=re_xxxxxxxx
+
+# 運営者用 API (退会処理・監査ログの削除) の認証トークン。`openssl rand -hex 32` で生成する
+OPERATOR_TOKEN=

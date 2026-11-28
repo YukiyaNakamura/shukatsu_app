@@ -14,6 +14,19 @@
       "service": "shukatsu-app"
     }
   ],
+  // アプリのデータベース。database_id は `npx wrangler d1 create shukatsu-app` の出力に置き換える
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "shukatsu-app",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "drizzle/migrations"
+    }
+  ],
+  // 公開してよい設定値。秘密情報 (BETTER_AUTH_SECRET 等) は `wrangler secret put` で設定する
+  "vars": {
+    "MAIL_FROM": "選考管理アプリ <no-reply@example.com>"
+  },
   "observability": {
     "enabled": true
   }

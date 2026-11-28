@@ -8,7 +8,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "選考ボード", template: "%s | 選考ボード" },
+  title: { default: "選考管理アプリ", template: "%s | 選考管理アプリ" },
   description: "就活生とキャリア支援エージェントのための選考管理ツール",
 };
 

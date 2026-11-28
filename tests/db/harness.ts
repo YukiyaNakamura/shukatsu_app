@@ -1,67 +1,50 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { PGlite, type Transaction } from "@electric-sql/pglite";
+import { getPlatformProxy } from "wrangler";
+import { createDb, type DB } from "@/db";
+import { user } from "@/db/schema";
+import type { DataContext, UserRole } from "@/lib/server/context";
 
-const root = join(__dirname, "..", "..");
+const migrationsDir = join(__dirname, "..", "..", "drizzle", "migrations");
 
-/** Supabase 互換の shim とすべてのマイグレーションを適用した PGlite を作成する */
-export async function createTestDb() {
-  const db = new PGlite();
-  await db.exec(readFileSync(join(__dirname, "supabase-shim.sql"), "utf8"));
-  const dir = join(root, "supabase", "migrations");
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
+/**
+ * テスト用の D1 (wrangler の getPlatformProxy。本番と同じ workerd の D1 実装をメモリ上で動かす)。
+ * drizzle/migrations のマイグレーションをすべて適用する。
+ */
+export async function createTestDb(): Promise<{ db: DB; d1: D1Database; dispose: () => Promise<void> }> {
+  // wrangler.jsonc と同じ D1 バインディングを、ファイルに保存しないメモリ上のデータベースとして起動する
+  const proxy = await getPlatformProxy<{ DB: D1Database }>({ persist: false });
+  const d1 = proxy.env.DB;
+  for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort()) {
+    const statements = readFileSync(join(migrationsDir, file), "utf8")
+      .split("--> statement-breakpoint")
+      .map((s) => s.trim())
+      .filter(Boolean);
     try {
-      await db.exec(readFileSync(join(dir, file), "utf8"));
+      await d1.batch(statements.map((s) => d1.prepare(s)));
     } catch (error) {
       throw new Error(`Migration failed: ${file}: ${(error as Error).message}`);
     }
   }
-  return db;
+  return { db: createDb(d1), d1, dispose: () => proxy.dispose() };
 }
 
-export type Db = PGlite;
+let seq = 0;
 
-/** auth.users にユーザーを作成する (handle_new_user トリガーで profiles が作られる) */
+/** ユーザーを直接作成する (認証は Better Auth の責務のため、ここではプロフィールだけを作る) */
 export async function createUser(
-  db: Db,
-  opts: { email: string; role: "STUDENT" | "ADMIN"; fullName?: string; university?: string; confirmed?: boolean },
-): Promise<string> {
-  const meta = {
+  db: DB,
+  opts: { email?: string; role: UserRole; fullName?: string; university?: string | null; verified?: boolean },
+): Promise<DataContext> {
+  const id = crypto.randomUUID();
+  const email = opts.email ?? `user${++seq}@example.com`;
+  await db.insert(user).values({
+    id,
+    name: opts.fullName ?? email.split("@")[0],
+    email,
+    emailVerified: opts.verified ?? true,
     role: opts.role,
-    full_name: opts.fullName ?? opts.email.split("@")[0],
-    university_name: opts.role === "STUDENT" ? (opts.university ?? "テスト大学") : undefined,
-  };
-  const res = await db.query<{ id: string }>(
-    "insert into auth.users (email, email_confirmed_at, raw_user_meta_data) values ($1, $2, $3) returning id",
-    [opts.email, opts.confirmed === false ? null : new Date().toISOString(), JSON.stringify(meta)],
-  );
-  return res.rows[0].id;
-}
-
-/**
- * 指定ユーザーとして (role=authenticated, JWT sub=uid) クエリを実行する。
- * 成功時もロールバックしたい場合は rollback=true。
- */
-export async function asUser<T>(
-  db: Db,
-  uid: string | null,
-  fn: (tx: Transaction) => Promise<T>,
-  role: "authenticated" | "anon" | "service_role" = uid ? "authenticated" : "anon",
-): Promise<T> {
-  return db.transaction(async (tx) => {
-    await tx.query(`select set_config('request.jwt.claim.sub', $1, true)`, [uid ?? ""]);
-    await tx.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify(uid ? { sub: uid, role } : { role })]);
-    await tx.exec(`set local role ${role}`);
-    return fn(tx);
+    universityName: opts.role === "STUDENT" ? (opts.university ?? "テスト大学") : (opts.university ?? null),
   });
-}
-
-/** 例外メッセージを返す (成功した場合は null) */
-export async function errorOf(p: Promise<unknown>): Promise<string | null> {
-  try {
-    await p;
-    return null;
-  } catch (e) {
-    return (e as Error).message;
-  }
+  return { db, actor: { id, role: opts.role, email } };
 }

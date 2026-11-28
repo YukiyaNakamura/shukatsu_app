@@ -69,7 +69,7 @@ function Brand() {
   return (
     <Link href="/" className="flex items-center gap-2 px-2.5 text-sm font-semibold tracking-tight">
       <span className="grid size-6 place-items-center rounded-md bg-primary text-[11px] font-bold text-primary-foreground">選</span>
-      選考ボード
+      選考管理アプリ
     </Link>
   );
 }

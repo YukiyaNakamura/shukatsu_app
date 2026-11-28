@@ -7,8 +7,8 @@ import { GraduationCap, Loader2, MailCheck, Users } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
-import { authErrorMessage } from "@/lib/auth/auth-errors";
+import { authClient } from "@/lib/auth/client";
+import { authErrorMessage, verifiedCallbackPath } from "@/lib/auth/auth-errors";
 import { signUpSchema } from "@/lib/validations/profile";
 import { FormField } from "./form-field";
 
@@ -47,28 +47,22 @@ export function RegisterForm({ next, defaultRole = "STUDENT" }: { next: string |
     setPending(true);
 
     const input = parsed.data;
-    const redirectTo = new URL("/auth/confirm", window.location.origin);
-    // メールテンプレートで `{{ .RedirectTo }}&token_hash=...` と連結できるよう常にクエリを付ける
-    redirectTo.searchParams.set("next", next ?? "/");
-    const { data, error } = await createClient().auth.signUp({
+    const { data, error } = await authClient.signUp.email({
       email: input.email,
       password: input.password,
-      options: {
-        emailRedirectTo: redirectTo.toString(),
-        data: {
-          role: input.role,
-          full_name: input.fullName,
-          university_name: input.role === "STUDENT" ? input.universityName : null,
-        },
-      },
+      name: input.fullName,
+      role: input.role,
+      universityName: input.role === "STUDENT" ? input.universityName : undefined,
+      // 確認メールのリンクを開いた後に戻るページ (確認しただけではログインしない)
+      callbackURL: verifiedCallbackPath(next),
     });
     setPending(false);
     if (error) {
       setFormError(authErrorMessage(error));
       return;
     }
-    if (data.session) {
-      // メール確認が無効な環境ではそのままログイン状態になる
+    if (data && "token" in data && data.token) {
+      // メール確認が不要な設定の場合はそのままログイン状態になる
       router.replace(next ?? "/");
       router.refresh();
       return;
@@ -87,7 +81,7 @@ export function RegisterForm({ next, defaultRole = "STUDENT" }: { next: string |
         </div>
         <p className="text-muted-foreground">メールが届かない場合は、迷惑メールフォルダを確認するか、時間をおいて再度登録してください。</p>
         <Button variant="outline" asChild>
-          <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>ログイン画面へ</Link>
+          <Link href={`/login?role=${role}${next ? `&next=${encodeURIComponent(next)}` : ""}`}>ログイン画面へ</Link>
         </Button>
       </div>
     );
@@ -99,7 +93,7 @@ export function RegisterForm({ next, defaultRole = "STUDENT" }: { next: string |
         {(
           [
             { value: "STUDENT", label: "学生", desc: "自分の選考を管理", icon: GraduationCap },
-            { value: "ADMIN", label: "エージェント", desc: "学生の選考を支援", icon: Users },
+            { value: "ADMIN", label: "管理者", desc: "学生の選考を支援 (エージェント等)", icon: Users },
           ] as const
         ).map((opt) => (
           <button
@@ -148,7 +142,7 @@ export function RegisterForm({ next, defaultRole = "STUDENT" }: { next: string |
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         すでにアカウントをお持ちの方は{" "}
-        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-foreground underline-offset-4 hover:underline">
+        <Link href={`/login?role=${role}${next ? `&next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-foreground underline-offset-4 hover:underline">
           ログイン
         </Link>
       </p>

@@ -14,7 +14,8 @@
 /coverage
 
 # next.js
-/.next/
+/.next
+/.next.nosync/
 /out/
 
 # production
@@ -43,12 +44,15 @@ next-env.d.ts
 
 # cloudflare / opennext
 .open-next
+.open-next.nosync
 .wrangler
+.wrangler.nosync
 .dev.vars
 !.dev.vars.example
-cloudflare-env.d.ts
+# cloudflare-env.d.ts (wrangler types の生成物) は型チェック・ビルドに必要なためコミットする
 
-# supabase
-supabase/.temp
-supabase/.branches
 node_modules/
+
+# 旧ローカル開発モード (PGlite) のデータ。不要になったため削除してよい
+.local-dev.nosync
+supabase/.temp

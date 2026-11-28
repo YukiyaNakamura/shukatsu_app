@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth/client";
 import { authErrorMessage } from "@/lib/auth/auth-errors";
 import { emailSchema } from "@/lib/validations/profile";
 import { FormField } from "./form-field";
@@ -24,9 +24,8 @@ export function ResetPasswordForm() {
     }
     setPending(true);
     setError("");
-    const redirectTo = new URL("/auth/confirm", window.location.origin);
-    redirectTo.searchParams.set("next", "/update-password");
-    const { error } = await createClient().auth.resetPasswordForEmail(parsed.data, { redirectTo: redirectTo.toString() });
+    // メール内のリンクは /update-password?token=... に戻る
+    const { error } = await authClient.requestPasswordReset({ email: parsed.data, redirectTo: "/update-password" });
     setPending(false);
     if (error) {
       setError(authErrorMessage(error));

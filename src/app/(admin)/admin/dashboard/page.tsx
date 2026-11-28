@@ -4,8 +4,7 @@ import { Award, Timer, TriangleAlert, Users } from "lucide-react";
 import { PageHeader } from "@/components/layouts/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { UpcomingList } from "@/components/dashboard/upcoming-list";
-import { requireOrgAdmin } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { requireOrgAdmin, getDataContext } from "@/lib/auth/session";
 import { getOrgDashboard } from "@/lib/data/organization";
 import { formatRelative } from "@/lib/utils/datetime";
 
@@ -13,7 +12,7 @@ export const metadata: Metadata = { title: "ダッシュボード" };
 
 export default async function AdminDashboardPage() {
   const ctx = await requireOrgAdmin();
-  const d = await getOrgDashboard(await createClient());
+  const d = await getOrgDashboard(await getDataContext());
   return (
     <>
       <PageHeader title="ダッシュボード" description={ctx.membership.organization_name} />

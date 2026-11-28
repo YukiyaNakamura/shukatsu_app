@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ApplicationDetail } from "@/components/applications/application-detail";
-import { requireOrgAdmin } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { requireOrgAdmin, getDataContext } from "@/lib/auth/session";
 import { getApplicationDetail } from "@/lib/data/applications";
 import { ApiError } from "@/lib/api/errors";
 import { uuidSchema } from "@/lib/validations/common";
@@ -13,7 +12,7 @@ export default async function AdminApplicationDetailPage({ params }: { params: P
   await requireOrgAdmin();
   const { id } = await params;
   if (!uuidSchema.safeParse(id).success) notFound();
-  const detail = await getApplicationDetail(await createClient(), id).catch((e) => {
+  const detail = await getApplicationDetail(await getDataContext(), id).catch((e) => {
     if (e instanceof ApiError && e.status === 404) notFound();
     throw e;
   });

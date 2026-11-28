@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layouts/page-header";
 import { CalendarView } from "@/components/calendar/calendar-view";
-import { requireStudent } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { requireStudent, getDataContext } from "@/lib/auth/session";
 import { loadCalendarPage } from "@/lib/data/calendar-page";
 
 export const metadata: Metadata = { title: "カレンダー" };
 
 export default async function StudentCalendarPage() {
   await requireStudent();
-  const data = await loadCalendarPage(await createClient());
+  const data = await loadCalendarPage(await getDataContext());
   return (
     <>
       <PageHeader title="カレンダー" description="選考ステップの日程・締切と、自分で登録した予定をまとめて確認できます。" />
